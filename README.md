@@ -1,5 +1,5 @@
 # quad_bridge_fw
-Firmware for the Nordic Semiconductor nRF51 that allows it to control a [Syma X4 (218 BKT)](http://www.amazon.com/gp/product/B00K5YXTVI?keywords=syma%20x4&qid=1445138267&ref_=sr_1_3&sr=8-3) quadcopter using an SNES gamepad or via Bluetooth Low Energy (BLE) with the [QuadBridge app](https://github.com/inductivekickback/QuadBridge) for Android.
+Firmware for the Nordic Semiconductor nRF51 SOC that allows it to control a [Syma X4 (218 BKT)](http://www.amazon.com/gp/product/B00K5YXTVI?keywords=syma%20x4&qid=1445138267&ref_=sr_1_3&sr=8-3) quadcopter using an SNES gamepad or via Bluetooth Low Energy (BLE) with the [QuadBridge app](https://github.com/inductivekickback/QuadBridge) for Android.
 
 ##About
 The Syma X4 quadcopter uses Nordic's ShockBurst RF protocol. This protocol is supported by all contemporary Nordic devices because it uses the same radio as BLE. Furthermore, Nordic's BLE stack allows the application to access the radio whenever the radio is idle so it's relatively easy to build a device that acts as a bridge between BLE and ShockBurst.
