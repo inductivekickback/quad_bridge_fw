@@ -11,4 +11,4 @@ The project is configured for use with the [nRF51-DK](http://www.digikey.com/pro
 
 Place the project into "{SDK ROOT}/examples/ble_peripheral/" to compile it. The firmware will send BLE advertisements with the Nordic UART Service UUID and "SYMA_218" as the name.
 
-If the gamepad is used then its VDD and GND pins should be plugged into VDD (NOT 5V) and GND on the nRF51-DK. Additionally, the gamepad's LATCH pin should be plugged in to P01, CLOCK should be plugged in to P02, and DATA should be plugged in to P03. The button mapping is defined in [gamepad_ctl.h](https://github.com/inductivekickback/quad_bridge_fw/blob/master/gamepad_ctl.h).
+If the gamepad is used then its VCC and GND pins should be plugged into VDD (NOT 5V) and GND on the nRF51-DK. Additionally, the gamepad's LATCH pin should be plugged in to P01, CLOCK should be plugged in to P02, and DATA should be plugged in to P03. The button mapping is defined in [gamepad_ctl.h](https://github.com/inductivekickback/quad_bridge_fw/blob/master/gamepad_ctl.h).
