@@ -1,6 +1,5 @@
 /**
- * The data packets use values between 0x7F and 0xFF for all values except
- * for flags. The packets have the following payload:
+ * The packets have the following payload:
  *
  * 0: THROTTLE  [0    (off),   0xFF (full)]
  * 1: PITCH     [0xFF (back),  0x7F (forward)]
