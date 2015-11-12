@@ -1,21 +1,21 @@
 /**
- * The packets have the following payload:
+ * The control packets have the following payload:
  *
  * 0: THROTTLE  [0    (off),   0xFF (full)]
  * 1: PITCH     [0xFF (back),  0x7F (forward)]
  * 2: YAW       [0xFF (right), 0x7F (left)]
  * 3: ROLL      [0xFF (right), 0x7F (left)]
  * 4: 0x00
- * 5: SPEED and PITCH trim
- *    Toggles mode between 0x40 or 0xC0 (above values are 0x40) (left bumper?)
- *    Up on right D-PAD increments to 0x5F (or 0xDF if in 0xC0 mode)
- *    Down on right D-PAD decrements to 0x7F (or 0xFF if in 0xC0 mode)
- * 6: FLIP (bit 6) Right bumper sets flag. Normally zero.
+ * 5: SPEED MODE (bits 7 and 6) LOW: 01b, HIGH: 11b (NOTE: HIGH SPEED MODE NOT TESTED)
+ *    PITCH TRIM [0x3F, 0x1F]
+ *              Up on right D-PAD increments to 0x1F
+ *              Down on right D-PAD decrements to 0x3F
+ * 6: FLIP (bit 6) Right bumper sets flag. Normally zero
  *    YAW TRIM [0x3F, 0x1F]
  *              Left on left D-PAD increments to 0x1F
  *              Right decrements until 0x3F
  * 7: ROLL TRIM [0x3F, 0x1F]
- *              Left on right D-PAD increment to 0x1F.
+ *              Left on right D-PAD increment to 0x1F
  *              Right decrements until 0x3F.
  * 8: 0x00
  * 9: CHECKSUM
@@ -39,12 +39,10 @@ typedef enum
     STATE_COUNT
 } state_t;
 
-// TODO: Test high speed mode.
-
-#define FIVE_BIT_MASK              (0x1FUL) // 5bit values are used
-#define FIVE_BIT_NEG_FLAG          (0x2UL)  // for trim values.
-#define SEVEN_BIT_MASK             (0x7FUL) // 7bit values are used
-#define SEVEN_BIT_NEG_FLAG         (0x80UL) // for yaw, pitch, and roll.
+#define SIX_BIT_MASK               (0x1FUL) // 6bit values are used for trim values.
+#define SIX_BIT_NEG_FLAG           (0x2UL)
+#define EIGHT_BIT_MASK             (0x7FUL) // 8bit values are used for yaw, pitch, and roll.
+#define EIGHT_BIT_NEG_FLAG         (0x80UL)
 
 #define SPEED_BIT_MASK             (0x80UL)
 
@@ -59,7 +57,7 @@ typedef enum
 #define LOW_SPEED_VALUE            (0x40UL)
 #define HIGH_SPEED_VALUE           (0xC0UL)
 
-#define DATA_PACKET_LEN            (10UL)
+#define CTL_PACKET_LEN             (10UL)
 #define THROTTLE_INDEX             (0UL)
 #define PITCH_INDEX                (1UL)
 #define YAW_INDEX                  (2UL)
@@ -78,13 +76,13 @@ typedef enum
 #define PACKETS_PER_CHANNEL        (2UL)
 
 static const uint8_t BROADCAST_ADDR[ADDR_LEN] = {0xAB,0xAC,0xAD,0xAE,0xAF};
-static const uint8_t DATA_ADDR[ADDR_LEN]      = {0x1C,0xDF,0x02,0x00,0xA2};
+static const uint8_t CTL_ADDR[ADDR_LEN]       = {0x1C,0xDF,0x02,0x00,0xA2};
 
-static const uint8_t BIND_PACKET[DATA_PACKET_LEN] = {0xA2,0x00,0x02,0xDF,0x1C,
-						     0xAA,0xAA,0xAA,0x00,0x1E};
+static const uint8_t BIND_PACKET[CTL_PACKET_LEN] = {0xA2,0x00,0x02,0xDF,0x1C,
+						    0xAA,0xAA,0xAA,0x00,0x1E};
 
 static const uint8_t BINDING_RF_CHANNELS[] = {0x4B,0x30,0x40,0x09};
-static const uint8_t DATA_RF_CHANNELS[]    = {0x1E,0x3E,0x16,0x36};
+static const uint8_t CTL_RF_CHANNELS[]     = {0x1E,0x3E,0x16,0x36};
 
 static state_t  m_state;
 static uint32_t m_state_count;
@@ -116,19 +114,19 @@ static uint8_t checksum_calc(uint8_t * data, uint8_t len)
 }
 
 
-static void data_packet_update(uint8_t * rf_channel,
-			       uint8_t * tx_addr,
-			       uint8_t * tx_addr_len,
-			       uint8_t * data,
-			       uint8_t * data_len)
+static void ctl_packet_update(uint8_t * rf_channel,
+                               uint8_t * tx_addr,
+                               uint8_t * tx_addr_len,
+                               uint8_t * data,
+                               uint8_t * data_len)
 {
     // Each channel is used twice.
-    *rf_channel  = DATA_RF_CHANNELS[m_state_count / 2];
+    *rf_channel  = CTL_RF_CHANNELS[m_state_count / 2];
 
-    memcpy(tx_addr, DATA_ADDR, sizeof(DATA_ADDR));
+    memcpy(tx_addr, CTL_ADDR, sizeof(CTL_ADDR));
 
-    *tx_addr_len = sizeof(DATA_ADDR);
-    *data_len    = DATA_PACKET_LEN;
+    *tx_addr_len = sizeof(CTL_ADDR);
+    *data_len    = CTL_PACKET_LEN;
 
     data[THROTTLE_INDEX]         = m_throttle;
     data[PITCH_INDEX]            = m_pitch;
@@ -139,10 +137,10 @@ static void data_packet_update(uint8_t * rf_channel,
     data[YAW_TRIM_FLIP_INDEX]    = m_yaw_trim_flip;
     data[ROLL_TRIM_INDEX]        = m_roll_trim;
     data[RESERVED_2_INDEX]       = RESERVED_DATA_VALUE;
-    data[CHECKSUM_INDEX]         = checksum_calc(data, (DATA_PACKET_LEN - 1));
+    data[CHECKSUM_INDEX]         = checksum_calc(data, (CTL_PACKET_LEN - 1));
 
     m_state_count++;
-    if ((sizeof(DATA_RF_CHANNELS) * PACKETS_PER_CHANNEL) == m_state_count)
+    if ((sizeof(CTL_RF_CHANNELS) * PACKETS_PER_CHANNEL) == m_state_count)
     {
 	m_state_count = 0;
     }
@@ -177,14 +175,14 @@ static void throttle_toggle_update(uint8_t * rf_channel,
 				   uint8_t * data,
 				   uint8_t * data_len)
 {
-    uint8_t i = (m_state_count % (sizeof(DATA_RF_CHANNELS) * PACKETS_PER_CHANNEL));
+    uint8_t i = (m_state_count % (sizeof(CTL_RF_CHANNELS) * PACKETS_PER_CHANNEL));
 
-    *rf_channel = DATA_RF_CHANNELS[i / 2];
+    *rf_channel = CTL_RF_CHANNELS[i / 2];
 
-    memcpy(tx_addr, DATA_ADDR, sizeof(DATA_ADDR));
+    memcpy(tx_addr, CTL_ADDR, sizeof(CTL_ADDR));
 
-    *tx_addr_len = sizeof(DATA_ADDR);
-    *data_len    = DATA_PACKET_LEN;
+    *tx_addr_len = sizeof(CTL_ADDR);
+    *data_len    = CTL_PACKET_LEN;
 
     m_state_count++;
 
@@ -204,7 +202,7 @@ static void throttle_toggle_update(uint8_t * rf_channel,
     {
 	data[THROTTLE_INDEX] = SYMA_MIN_THROTTLE_VALUE;
 	m_state              = BOUND_STATE;
-	m_state_count        = (i % (sizeof(DATA_RF_CHANNELS) * PACKETS_PER_CHANNEL));
+	m_state_count        = (i % (sizeof(CTL_RF_CHANNELS) * PACKETS_PER_CHANNEL));
     }
 
     data[PITCH_INDEX]            = RESERVED_DATA_VALUE;
@@ -215,7 +213,7 @@ static void throttle_toggle_update(uint8_t * rf_channel,
     data[YAW_TRIM_FLIP_INDEX]    = RESERVED_DATA_VALUE;
     data[ROLL_TRIM_INDEX]        = RESERVED_DATA_VALUE;
     data[RESERVED_2_INDEX]       = RESERVED_DATA_VALUE;
-    data[CHECKSUM_INDEX]         = checksum_calc(data, (DATA_PACKET_LEN - 1));
+    data[CHECKSUM_INDEX]         = checksum_calc(data, (CTL_PACKET_LEN - 1));
 }
 
 
@@ -255,21 +253,21 @@ static void seven_bit_value_set(uint8_t * var, int8_t val)
 {
     if (0 > val)
     {
-	*var = ((-1 * val) & SEVEN_BIT_MASK);
-	*var |= SEVEN_BIT_NEG_FLAG;
+	*var = ((-1 * val) & EIGHT_BIT_MASK);
+	*var |= EIGHT_BIT_NEG_FLAG;
     }
     else
     {
-	*var = (val & SEVEN_BIT_MASK);
+	*var = (val & EIGHT_BIT_MASK);
     }
 }
 
 
 static int8_t seven_bit_value_get(uint8_t var)
 {
-    if (var & SEVEN_BIT_NEG_FLAG)
+    if (var & EIGHT_BIT_NEG_FLAG)
     {
-	int8_t result = (var & SEVEN_BIT_MASK);
+	int8_t result = (var & EIGHT_BIT_MASK);
 	return (-1 * result);
     }
     else
@@ -283,21 +281,21 @@ static void five_bit_value_set(uint8_t * var, int8_t val)
 {
     if (0 > val)
     {
-	*var = ((-1 * val) & FIVE_BIT_MASK);
-	*var |= FIVE_BIT_NEG_FLAG;
+	*var = ((-1 * val) & SIX_BIT_MASK);
+	*var |= SIX_BIT_NEG_FLAG;
     }
     else
     {
-	*var = (val & FIVE_BIT_MASK);
+	*var = (val & SIX_BIT_MASK);
     }
 }
 
 
 static int8_t five_bit_value_get(uint8_t var)
 {
-    if (var & FIVE_BIT_NEG_FLAG)
+    if (var & SIX_BIT_NEG_FLAG)
     {
-	int8_t result = (var & FIVE_BIT_MASK);
+	int8_t result = (var & SIX_BIT_MASK);
 	return (-1 * result);
     }
     else
@@ -595,7 +593,7 @@ bool syma_is_bound(void)
 
 void syma_update_missed(void)
 {
-    uint8_t dummy_buffer[DATA_PACKET_LEN];
+    uint8_t dummy_buffer[CTL_PACKET_LEN];
 
     // Continue moving through the channels normally.
     syma_update(&dummy_buffer[0],
@@ -629,7 +627,7 @@ void syma_update(uint8_t * rf_channel,
 			       data_len);
 	break;
     case BOUND_STATE:
-	data_packet_update(rf_channel,
+	ctl_packet_update(rf_channel,
 			   tx_addr,
 			   tx_addr_len,
 			   data,
