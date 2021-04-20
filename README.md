@@ -6,7 +6,7 @@ The Syma X4 quadcopter uses Nordic's ShockBurst RF protocol. This protocol is su
 If BLE is not required then the quadcopter can also be driven using a Trenro SNES gamepad. These gamepads are inexpensive and easy to work with.
 
 ## Usage
-The project is configured for use with the [nRF51-DK](http://www.digikey.com/product-detail/en/NRF51-DK/1490-1038-ND/5022449) and [nRF51 SDK v8.0](http://developer.nordicsemi.com/nRF51_SDK/nRF51_SDK_v8.x.x/). Note that the [S110 SoftDevice](http://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.110.sds.v1.0.0%2Fs110.html&cp=2_7_0) is also required.
+The project is configured for use with the [nRF51-DK](http://www.digikey.com/product-detail/en/NRF51-DK/1490-1038-ND/5022449) and [nRF51 SDK v8.0](http://developer.nordicsemi.com/nRF51_SDK/nRF51_SDK_v8.x.x/). Note that the S110 SoftDevice is also required.
 
 Place the project into "{SDK ROOT}/examples/ble_peripheral/" to compile it. The firmware will send BLE advertisements with the Nordic UART Service UUID and "SYMA_218" as the name.
 
